@@ -45,7 +45,7 @@ class JobRequestsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF020408),
-      bottomNavigationBar: const ProviderBottomNavBar(currentIndex: 1),
+      bottomNavigationBar: const ProviderBottomNavBar(currentIndex: 2),
       body: Stack(
         children: [
           // 1. Deep Obsidian Luxury Gradient Background

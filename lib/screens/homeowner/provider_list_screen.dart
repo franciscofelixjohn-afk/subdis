@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'create_booking_screen.dart';
 import 'user_booking_status_page.dart';
+import '../chat/chat_screen.dart';
 
 class ProviderListScreen extends StatefulWidget {
   final String categoryTitle;
@@ -293,10 +294,19 @@ class _ProviderListScreenState extends State<ProviderListScreen> {
 
                       final allDocs = snapshot.data?.docs ?? [];
 
-                      // 1. Filter by Category
-                      // 2. Filter by Search Query
-                      // 3. AI / System Recommendation Sorting (e.g., Verified or top rated first)
+                      final currentUid =
+                          FirebaseAuth.instance.currentUser?.uid;
+
+                      // 1. Exclude the currently logged-in provider's own
+                      //    account (a provider should never see/book themself)
+                      // 2. Filter by Category
+                      // 3. Filter by Search Query
+                      // 4. AI / System Recommendation Sorting (e.g., Verified or top rated first)
                       final filteredDocs = allDocs.where((doc) {
+                        if (currentUid != null && doc.id == currentUid) {
+                          return false;
+                        }
+
                         final data = doc.data();
                         final serviceCategory = getServiceCategory(data);
                         final name = getDisplayName(data).toLowerCase();
@@ -541,11 +551,59 @@ class _ProviderListScreenState extends State<ProviderListScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      Icon(
-                                        Icons.chevron_right_rounded,
-                                        color: Colors.white
-                                            .withValues(alpha: 0.3),
-                                        size: 18,
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Material(
+                                            color: const Color(0xFF0284C7)
+                                                .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            child: InkWell(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => ChatScreen(
+                                                      otherUserId: providerId,
+                                                      otherUserName:
+                                                          providerName,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          10),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                            0xFF38BDF8)
+                                                        .withValues(
+                                                            alpha: 0.3),
+                                                  ),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.chat_bubble_rounded,
+                                                  color: Color(0xFF38BDF8),
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Icon(
+                                            Icons.chevron_right_rounded,
+                                            color: Colors.white
+                                                .withValues(alpha: 0.3),
+                                            size: 18,
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),

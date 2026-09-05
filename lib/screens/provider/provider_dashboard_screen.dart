@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/booking_service.dart';
 import '../../widgets/provider_bottom_nav_bar.dart';
 import '../chat/chat_list_screen.dart';
+import 'provider_book_service_screen.dart';
 import 'provider_schedule_screen.dart';
 
 class ProviderDashboardScreen extends StatelessWidget {
@@ -350,6 +351,20 @@ class ProviderDashboardScreen extends StatelessWidget {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Service Rates not implemented yet'),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildActionCard(
+                        context,
+                        title: 'Book a Provider',
+                        icon: Icons.storefront_rounded,
+                        badgeCount: 0,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ProviderBookServiceScreen(),
                             ),
                           );
                         },

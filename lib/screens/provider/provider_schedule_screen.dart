@@ -27,7 +27,7 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF020408),
-      bottomNavigationBar: const ProviderBottomNavBar(currentIndex: 1),
+      bottomNavigationBar: const ProviderBottomNavBar(currentIndex: 2),
       body: Stack(
         children: [
           Container(

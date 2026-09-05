@@ -77,29 +77,10 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       }
 
-      if (widget.bookingId != null && widget.bookingId!.isNotEmpty) {
-        final bookingDoc = await FirebaseFirestore.instance
-            .collection('bookings')
-            .doc(widget.bookingId)
-            .get();
-
-        if (bookingDoc.exists) {
-          final data = bookingDoc.data();
-          final status = (data?['status'] ?? '').toString().toLowerCase();
-          if (status == 'accepted') {
-            isBookingAccepted = true;
-          }
-        }
-      } else {
-        isBookingAccepted = true;
-      }
-
-      if (!isBookingAccepted) {
-        setState(() {
-          isCheckingBooking = false;
-        });
-        return;
-      }
+      // Chat is allowed regardless of booking status (pending, accepted,
+      // completed, etc.) so homeowners and providers can talk to each other
+      // before the provider accepts the job.
+      isBookingAccepted = true;
 
       final id = await _chatService.createOrGetChat(
         currentUserId: currentUserId,
@@ -200,45 +181,6 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         body: const Center(
           child: CircularProgressIndicator(color: Color(0xFF38BDF8)),
-        ),
-      );
-    }
-
-    if (!isBookingAccepted) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF020408),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF061021),
-          foregroundColor: Colors.white,
-          title: Text(resolvedOtherUserName,
-              style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.lock_outline_rounded,
-                    size: 48, color: Color(0xFFF59E0B)),
-                const SizedBox(height: 16),
-                Text(
-                  'Chat Restricted',
-                  style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Messaging is only available once the booking request has been officially accepted.',
-                  style:
-                      GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
         ),
       );
     }

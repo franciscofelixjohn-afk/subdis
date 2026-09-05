@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../screens/chat/chat_list_screen.dart';
+import '../screens/provider/provider_book_service_screen.dart';
 import '../screens/provider/provider_dashboard_screen.dart';
 import '../screens/provider/provider_profile_screen.dart';
 import '../screens/provider/provider_schedule_screen.dart';
@@ -24,12 +25,15 @@ class ProviderBottomNavBar extends StatelessWidget {
         targetScreen = const ProviderDashboardScreen();
         break;
       case 1:
-        targetScreen = const ProviderScheduleScreen();
+        targetScreen = const ProviderBookServiceScreen();
         break;
       case 2:
-        targetScreen = const ChatListScreen();
+        targetScreen = const ProviderScheduleScreen();
         break;
       case 3:
+        targetScreen = const ChatListScreen();
+        break;
+      case 4:
         targetScreen = const ProviderProfileScreen();
         break;
       default:
@@ -68,20 +72,27 @@ class ProviderBottomNavBar extends StatelessWidget {
           _buildNavItem(
             context: context,
             index: 1,
+            icon: Icons.storefront_outlined,
+            activeIcon: Icons.storefront_rounded,
+            label: 'Book',
+          ),
+          _buildNavItem(
+            context: context,
+            index: 2,
             icon: Icons.calendar_today_outlined,
             activeIcon: Icons.calendar_today_rounded,
             label: 'Schedule',
           ),
           _buildNavItem(
             context: context,
-            index: 2,
+            index: 3,
             icon: Icons.message_outlined,
             activeIcon: Icons.message_rounded,
             label: 'Messages',
           ),
           _buildNavItem(
             context: context,
-            index: 3,
+            index: 4,
             icon: Icons.person_outline_rounded,
             activeIcon: Icons.person_rounded,
             label: 'Profile',

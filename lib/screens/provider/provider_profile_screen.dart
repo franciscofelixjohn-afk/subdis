@@ -506,7 +506,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF020408),
-      bottomNavigationBar: const ProviderBottomNavBar(currentIndex: 3),
+      bottomNavigationBar: const ProviderBottomNavBar(currentIndex: 4),
       body: Stack(
         children: [
           Container(

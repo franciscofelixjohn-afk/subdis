@@ -66,7 +66,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       bottomNavigationBar: _isLoadingRole
           ? null
           : (_isProvider
-              ? const ProviderBottomNavBar(currentIndex: 2)
+              ? const ProviderBottomNavBar(currentIndex: 3)
               : const CustomBottomNavBar(currentIndex: 2)),
       body: Stack(
         children: [
