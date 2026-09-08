@@ -2,36 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
+import '../../widgets/suspension_dialogs.dart';
 
 class AdminUserManagementScreen extends StatelessWidget {
   const AdminUserManagementScreen({super.key});
 
-  Future<void> _updateUserStatus(
-      BuildContext context, String userId, String currentStatus, String userName) async {
-    final newStatus = currentStatus == 'Suspended' ? 'Active' : 'Suspended';
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .update({'status': newStatus});
-
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Successfully set $userName status to $newStatus'),
-          backgroundColor: newStatus == 'Active' ? const Color(0xFF10B981) : Colors.redAccent,
-        ),
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating status: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+  String _formatDate(dynamic value) {
+    if (value is Timestamp) {
+      final d = value.toDate();
+      return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
     }
+    return '';
   }
 
   void _showUserDetailsDialog(BuildContext context, Map<String, dynamic> data) {
@@ -130,6 +111,8 @@ class AdminUserManagementScreen extends StatelessWidget {
         return Colors.green;
       case 'pending':
         return Colors.orange;
+      case 'restricted':
+        return Colors.orangeAccent;
       case 'suspended':
         return AppColors.danger;
       default:
@@ -219,6 +202,15 @@ class AdminUserManagementScreen extends StatelessWidget {
                           : 'Homeowner';
                       final status = data['status'] ?? 'Active';
                       final statusColor = getStatusColor(status);
+                      final suspensionReason =
+                          (data['suspensionReason'] ?? '').toString();
+                      final restrictionEndDate = data['restrictionEndDate'];
+                      final appealStatus =
+                          (data['appealStatus'] ?? 'none').toString();
+                      final appealMessage =
+                          (data['appealMessage'] ?? '').toString();
+                      final lastActivationNote =
+                          (data['lastActivationNote'] ?? '').toString();
 
                       return Container(
                         padding: const EdgeInsets.all(14),
@@ -301,6 +293,70 @@ class AdminUserManagementScreen extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 12),
+                            if (status == 'Suspended' || status == 'Restricted') ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(10),
+                                margin: const EdgeInsets.only(bottom: 10),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: statusColor.withValues(alpha: 0.2)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (suspensionReason.isNotEmpty)
+                                      Text(
+                                        'Reason: $suspensionReason',
+                                        style: GoogleFonts.poppins(
+                                            color: statusColor,
+                                            fontSize: 11),
+                                      ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      status == 'Suspended'
+                                          ? 'Fully suspended \u2014 requires an approved appeal to lift.'
+                                          : restrictionEndDate is Timestamp
+                                              ? 'Restricted (still usable) until: ${_formatDate(restrictionEndDate)}'
+                                              : 'Restricted (still usable).',
+                                      style: GoogleFonts.poppins(
+                                          color: Colors.white54, fontSize: 10),
+                                    ),
+                                    if (appealStatus == 'pending') ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Appeal submitted: "$appealMessage"',
+                                        style: GoogleFonts.poppins(
+                                            color: const Color(0xFF38BDF8),
+                                            fontSize: 11,
+                                            fontStyle: FontStyle.italic),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ] else if (lastActivationNote.isNotEmpty) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(10),
+                                margin: const EdgeInsets.only(bottom: 10),
+                                decoration: BoxDecoration(
+                                  color:
+                                      const Color(0xFF10B981).withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: const Color(0xFF10B981)
+                                          .withValues(alpha: 0.2)),
+                                ),
+                                child: Text(
+                                  'Last reactivation note: $lastActivationNote',
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.white54, fontSize: 10),
+                                ),
+                              ),
+                            ],
                             Row(
                               children: [
                                 Expanded(
@@ -322,8 +378,21 @@ class AdminUserManagementScreen extends StatelessWidget {
                                   child: SizedBox(
                                     height: 32,
                                     child: ElevatedButton(
-                                      onPressed: () =>
-                                          _updateUserStatus(context, userId, status, name),
+                                      onPressed: () {
+                                        if (status == 'Suspended') {
+                                          showActivateAccountDialog(
+                                            context: context,
+                                            userId: userId,
+                                            userName: name,
+                                          );
+                                        } else {
+                                          showSuspendAccountDialog(
+                                            context: context,
+                                            userId: userId,
+                                            userName: name,
+                                          );
+                                        }
+                                      },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: status == 'Suspended'
                                             ? Colors.green
@@ -337,6 +406,77 @@ class AdminUserManagementScreen extends StatelessWidget {
                                         style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600),
                                       ),
                                     ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 32,
+                                    child: OutlinedButton(
+                                      onPressed: () => showAppealHistoryDialog(
+                                        context: context,
+                                        userId: userId,
+                                        userName: name,
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        side: BorderSide(
+                                            color: Colors.white.withValues(alpha: 0.2)),
+                                        foregroundColor: Colors.white70,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                      child: Text('History', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 32,
+                                    child: status == 'Suspended'
+                                        ? const SizedBox.shrink()
+                                        : ElevatedButton(
+                                            onPressed: () {
+                                              if (status == 'Restricted') {
+                                                showActivateAccountDialog(
+                                                  context: context,
+                                                  userId: userId,
+                                                  userName: name,
+                                                );
+                                              } else {
+                                                showRestrictAccountDialog(
+                                                  context: context,
+                                                  userId: userId,
+                                                  userName: name,
+                                                );
+                                              }
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  status == 'Restricted'
+                                                      ? Colors.green
+                                                      : Colors.transparent,
+                                              foregroundColor:
+                                                  status == 'Restricted'
+                                                      ? Colors.white
+                                                      : Colors.orangeAccent,
+                                              elevation: 0,
+                                              side: status == 'Restricted'
+                                                  ? BorderSide.none
+                                                  : const BorderSide(
+                                                      color: Colors.orangeAccent),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                            child: Text(
+                                              status == 'Restricted'
+                                                  ? 'Unrestrict'
+                                                  : 'Restrict',
+                                              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600),
+                                            ),
+                                          ),
                                   ),
                                 ),
                               ],

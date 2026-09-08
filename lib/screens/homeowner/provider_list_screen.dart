@@ -382,6 +382,11 @@ class _ProviderListScreenState extends State<ProviderListScreen> {
                           final status = (data['verificationStatus'] ?? 'pending')
                               .toString()
                               .toLowerCase();
+                          final accountStatus =
+                              (data['status'] ?? 'Active').toString();
+                          final isRestrictedOrSuspended =
+                              accountStatus == 'Restricted' ||
+                                  accountStatus == 'Suspended';
 
                           // System Recommendation Badge logic
                           final isRecommended = status == 'approved';
@@ -464,6 +469,52 @@ class _ProviderListScreenState extends State<ProviderListScreen> {
                                                     ),
                                                   ),
                                                 ),
+                                                if (isRestrictedOrSuspended) ...[
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets
+                                                            .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: (accountStatus ==
+                                                                  'Suspended'
+                                                              ? Colors.redAccent
+                                                              : Colors
+                                                                  .orangeAccent)
+                                                          .withValues(
+                                                              alpha: 0.15),
+                                                      borderRadius:
+                                                          BorderRadius
+                                                              .circular(6),
+                                                      border: Border.all(
+                                                        color: (accountStatus ==
+                                                                    'Suspended'
+                                                                ? Colors
+                                                                    .redAccent
+                                                                : Colors
+                                                                    .orangeAccent)
+                                                            .withValues(
+                                                                alpha: 0.4),
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      accountStatus,
+                                                      style: GoogleFonts.poppins(
+                                                        color: accountStatus ==
+                                                                'Suspended'
+                                                            ? Colors.redAccent
+                                                            : Colors
+                                                                .orangeAccent,
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                ],
                                                 if (isRecommended) ...[
                                                   Container(
                                                     padding:

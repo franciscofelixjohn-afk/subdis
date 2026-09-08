@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
+import 'admin_booking_manage_screen.dart';
+import 'admin_booking_progress_screen.dart';
 
 class AdminBookingMonitoringScreen extends StatelessWidget {
   const AdminBookingMonitoringScreen({super.key});
@@ -91,13 +93,27 @@ class AdminBookingMonitoringScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final data = docs[index].data() as Map<String, dynamic>;
                       final bookingId = docs[index].id;
-                      final service = data['service'] ?? data['serviceName'] ?? 'General Service';
-                      final homeowner = data['homeownerName'] ?? data['homeowner'] ?? 'Unknown Resident';
-                      final provider = data['providerName'] ?? data['provider'] ?? 'Unassigned';
-                      final date = data['date'] ?? 'N/A';
-                      final time = data['time'] ?? 'N/A';
-                      final status = data['status'] ?? 'Pending';
+                      final service = (data['service'] ?? data['serviceName'] ?? 'General Service').toString();
+                      final homeowner = (data['homeownerName'] ?? data['homeowner'] ?? 'Unknown Resident').toString();
+                      final provider = (data['providerName'] ?? data['provider'] ?? 'Unassigned').toString();
+                      final providerId = (data['providerId'] ?? '').toString();
+                      final status = (data['status'] ?? 'Pending').toString();
                       final statusColor = getStatusColor(status);
+
+                      // The booking's originally scheduled date/time.
+                      String date = (data['bookingDate'] ?? data['date'] ?? 'N/A').toString();
+                      String time = (data['bookingTime'] ?? data['time'] ?? 'N/A').toString();
+
+                      // For completed jobs, show when it was actually
+                      // finished instead of just the original schedule.
+                      final completedAt = data['completedAt'];
+                      if (status.toLowerCase() == 'completed' && completedAt is Timestamp) {
+                        final d = completedAt.toDate();
+                        final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+                        final ampm = d.hour >= 12 ? 'PM' : 'AM';
+                        date = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} (completed)';
+                        time = '$h:${d.minute.toString().padLeft(2, '0')} $ampm';
+                      }
 
                       return Container(
                         padding: const EdgeInsets.all(14),
@@ -197,8 +213,19 @@ class AdminBookingMonitoringScreen extends StatelessWidget {
                                     height: 32,
                                     child: OutlinedButton(
                                       onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Viewing booking ID: $bookingId')),
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                AdminBookingProgressScreen(
+                                              bookingId: bookingId,
+                                              providerId: providerId,
+                                              providerName: provider,
+                                              homeownerName: homeowner,
+                                              service: service,
+                                              status: status,
+                                            ),
+                                          ),
                                         );
                                       },
                                       style: OutlinedButton.styleFrom(
@@ -216,8 +243,18 @@ class AdminBookingMonitoringScreen extends StatelessWidget {
                                     height: 32,
                                     child: ElevatedButton(
                                       onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Managing booking ID: $bookingId')),
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                AdminBookingManageScreen(
+                                              bookingId: bookingId,
+                                              providerId: providerId,
+                                              providerName: provider,
+                                              homeownerName: homeowner,
+                                              service: service,
+                                            ),
+                                          ),
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(

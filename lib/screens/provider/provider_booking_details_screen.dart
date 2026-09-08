@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../models/booking_model.dart';
 import '../../services/booking_service.dart';
+import '../../widgets/progress_timeline.dart';
 import '../chat/chat_screen.dart';
 
 class ProviderBookingDetailsScreen extends StatefulWidget {
@@ -548,6 +549,14 @@ class _ProviderBookingDetailsScreenState
                   ),
                   const SizedBox(height: 24),
                   _buildActionButtons(),
+                  if (isAcceptedOrCompleted) ...[
+                    const SizedBox(height: 24),
+                    ProgressTimeline(
+                      bookingId: booking.id,
+                      providerId: booking.providerId,
+                      showAddButton: booking.status.toLowerCase() == 'accepted',
+                    ),
+                  ],
                 ],
               ),
             ),

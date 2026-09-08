@@ -14,6 +14,55 @@ class ProviderProfileScreen extends StatefulWidget {
 }
 
 class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
+  Future<void> _logout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.2)),
+        ),
+        title: Text(
+          'Logout',
+          style: GoogleFonts.outfit(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to log out?',
+          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text('Cancel',
+                style: GoogleFonts.poppins(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text('Logout',
+                style: GoogleFonts.poppins(
+                    color: Colors.redAccent, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    await FirebaseAuth.instance.signOut();
+
+    if (!context.mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
   bool _isLoading = true;
   String _fullName = 'Loading...';
   String _experience = '';
@@ -781,15 +830,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                     width: double.infinity,
                     height: 48,
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const LoginScreen(),
-                          ),
-                          (route) => false,
-                        );
-                      },
+                      onPressed: () => _logout(context),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
                           color: Colors.redAccent.withValues(alpha: 0.4),

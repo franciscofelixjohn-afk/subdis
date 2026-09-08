@@ -252,10 +252,16 @@ class BookingService {
         );
       }
 
-      transaction.update(docRef, {
+      final updateData = <String, dynamic>{
         'status': normalizedNewStatus,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      if (normalizedNewStatus == 'completed') {
+        updateData['completedAt'] = FieldValue.serverTimestamp();
+      }
+
+      transaction.update(docRef, updateData);
     });
   }
 

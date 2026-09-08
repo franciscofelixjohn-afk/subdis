@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../widgets/bottom_nav_bar.dart';
+import '../chat/chat_screen.dart';
+import 'booking_progress_screen.dart';
 
 class ActiveBookingsScreen extends StatelessWidget {
   const ActiveBookingsScreen({super.key});
@@ -219,7 +221,12 @@ class ActiveBookingsScreen extends StatelessWidget {
                           separatorBuilder: (context, index) =>
                               const SizedBox(height: 12),
                           itemBuilder: (context, index) {
-                            final booking = bookings[index].data();
+                            final bookingDoc = bookings[index];
+                            final booking = bookingDoc.data();
+                            final String bookingId = bookingDoc.id;
+
+                            final String providerId =
+                                (booking['providerId'] ?? '').toString();
 
                             final String providerName =
                                 (booking['providerName'] ?? 'Unknown Provider')
@@ -384,11 +391,17 @@ class ActiveBookingsScreen extends StatelessWidget {
                                           height: 38,
                                           child: OutlinedButton(
                                             onPressed: () {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Viewing details for $providerName',
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      BookingProgressScreen(
+                                                    bookingId: bookingId,
+                                                    providerId: providerId,
+                                                    providerName:
+                                                        providerName,
+                                                    service: service,
+                                                    status: status,
                                                   ),
                                                 ),
                                               );
@@ -422,11 +435,14 @@ class ActiveBookingsScreen extends StatelessWidget {
                                           height: 38,
                                           child: ElevatedButton(
                                             onPressed: () {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Messaging $providerName',
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => ChatScreen(
+                                                    otherUserId: providerId,
+                                                    otherUserName:
+                                                        providerName,
+                                                    bookingId: bookingId,
                                                   ),
                                                 ),
                                               );

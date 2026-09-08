@@ -8,7 +8,9 @@ import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../screens/admin/admin_dashboard_screen.dart';
 import '../../../../screens/homeowner/home_screen.dart';
 import '../../../../screens/provider/provider_dashboard_screen.dart';
+import '../../../../services/suspension_service.dart';
 import 'register_screen.dart';
+import 'suspended_account_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,6 +33,106 @@ class _LoginScreenState extends State<LoginScreen> {
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openRestrictedAppealDialog(String uid) async {
+    final appealController = TextEditingController();
+    bool isSubmitting = false;
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Future<void> send() async {
+              if (appealController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(
+                      content: Text('Please explain your appeal.')),
+                );
+                return;
+              }
+
+              setDialogState(() => isSubmitting = true);
+              try {
+                await SuspensionService().submitAppeal(
+                  userId: uid,
+                  message: appealController.text,
+                  accountStatusAtSubmission: 'Restricted',
+                );
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Appeal submitted for admin review.'),
+                      backgroundColor: Color(0xFF10B981),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(content: Text('Failed to submit: $e')),
+                  );
+                }
+              } finally {
+                setDialogState(() => isSubmitting = false);
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF0F172A),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: Text('Submit Appeal',
+                  style: GoogleFonts.outfit(
+                      color: Colors.white, fontWeight: FontWeight.w700)),
+              content: TextField(
+                controller: appealController,
+                maxLines: 4,
+                style: GoogleFonts.poppins(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Explain why your restriction should be lifted...',
+                  hintStyle: GoogleFonts.poppins(color: Colors.white38),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.04),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text('Cancel',
+                      style: GoogleFonts.poppins(color: Colors.white54)),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting ? null : send,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.5, color: Colors.white),
+                        )
+                      : Text('Send',
+                          style:
+                              GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> handleLogin() async {
@@ -90,6 +192,123 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final data = userDoc.data();
       final role = (data?['role'] ?? '').toString().toLowerCase();
+
+      // --- Suspension check ---
+      // Auto-lifts a timed (3-day / 7-day) suspension if it has already
+      // expired; otherwise returns the current (possibly still-suspended)
+      // account data.
+      final refreshedData =
+          await SuspensionService().checkAndAutoLift(uid) ?? data;
+      final accountStatus =
+          (refreshedData?['status'] ?? 'Active').toString();
+
+      if (accountStatus == 'Suspended') {
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SuspendedAccountScreen(
+              userId: uid,
+              userName: (refreshedData?['fullName'] ??
+                      refreshedData?['name'] ??
+                      'User')
+                  .toString(),
+              reason: (refreshedData?['suspensionReason'] ?? '').toString(),
+              appealStatus:
+                  (refreshedData?['appealStatus'] ?? 'none').toString(),
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (accountStatus == 'Restricted') {
+        final endTimestamp = refreshedData?['restrictionEndDate'];
+        final endDate =
+            endTimestamp is Timestamp ? endTimestamp.toDate() : null;
+        final reason = (refreshedData?['suspensionReason'] ?? '').toString();
+        final appealStatus =
+            (refreshedData?['appealStatus'] ?? 'none').toString();
+
+        if (mounted) {
+          await showDialog(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              backgroundColor: const Color(0xFF0F172A),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                    color: Colors.orangeAccent.withValues(alpha: 0.3)),
+              ),
+              title: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      color: Colors.orangeAccent),
+                  const SizedBox(width: 8),
+                  Text('Account Restricted',
+                      style: GoogleFonts.outfit(
+                          color: Colors.white, fontWeight: FontWeight.w700)),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (reason.isNotEmpty) ...[
+                    Text('Reason: $reason',
+                        style: GoogleFonts.poppins(
+                            color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 8),
+                  ],
+                  Text(
+                    endDate != null
+                        ? 'Your account is restricted until ${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}. You can still use your account, but it will automatically become fully suspended if you don\'t appeal in time.'
+                        : 'Your account is currently restricted. You can still use your account, but it will automatically become fully suspended if you don\'t appeal in time.',
+                    style: GoogleFonts.poppins(
+                        color: Colors.white54, fontSize: 12),
+                  ),
+                  if (appealStatus == 'pending') ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Your appeal has been submitted and is awaiting admin review.',
+                        style: GoogleFonts.poppins(
+                            color: Colors.white, fontSize: 11),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                if (appealStatus != 'pending')
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.pop(dialogContext);
+                      await _openRestrictedAppealDialog(uid);
+                    },
+                    child: Text('Submit Appeal',
+                        style: GoogleFonts.poppins(
+                            color: const Color(0xFF38BDF8),
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orangeAccent,
+                      foregroundColor: Colors.black),
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
 
       Widget destination;
 
