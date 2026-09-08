@@ -224,7 +224,7 @@ class _SuspendedAccountScreenState extends State<SuspendedAccountScreen> {
                                   color: Colors.white38, fontSize: 11)),
                           const SizedBox(height: 2),
                           Text(
-                            'This is your 3rd offense on this account. An approved appeal is required to restore access.',
+                            'You need to submit an appeal for an admin to review before access to this account can be restored.',
                             style: GoogleFonts.poppins(
                                 color: Colors.white70, fontSize: 12),
                           ),

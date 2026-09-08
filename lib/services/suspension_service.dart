@@ -130,10 +130,17 @@ class SuspensionService {
       'appealStatus': 'reviewed',
       'lastActivationNote': note.trim(),
       'lastActivatedAt': Timestamp.fromDate(DateTime.now()),
+      'lastActivationNoteSeen': false,
     };
 
     await _usersRef.doc(userId).update(fields);
     await _mirrorToProviderDoc(userId, fields);
+  }
+
+  /// Marks the latest reactivation note as seen so it doesn't keep
+  /// popping up on every future login.
+  Future<void> markActivationNoteSeen(String userId) async {
+    await _usersRef.doc(userId).update({'lastActivationNoteSeen': true});
   }
 
   /// Called by a Restricted or Suspended user to submit an appeal for
